@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Học Tập: Liên kết ion</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+        .gradient-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 50%, #7e22ce 100%);
+        }
+        
+        /* Custom Checkbox/Radio */
+        .custom-radio:checked + label {
+            background-color: #ebf8ff;
+            border-color: #3182ce;
+        }
+        
+        /* Matching interaction */
+        .match-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .match-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .match-selected { background-color: #ebf8ff !important; border-color: #3182ce !important; box-shadow: 0 0 0 2px #3182ce; }
+        .match-paired-1 { background-color: #ffe4e6; border-color: #f43f5e; color: #881337;}
+        .match-paired-2 { background-color: #dcfce7; border-color: #22c55e; color: #14532d;}
+        .match-paired-3 { background-color: #fef08a; border-color: #eab308; color: #713f12;}
+        .match-paired-4 { background-color: #e0e7ff; border-color: #6366f1; color: #312e81;}
+
+        /* Drag and Drop */
+        .draggable { cursor: grab; }
+        .draggable:active { cursor: grabbing; }
+        .dropzone { min-height: 40px; border: 2px dashed #cbd5e1; transition: all 0.3s; }
+        .dropzone.dragover { background-color: #f1f5f9; border-color: #3b82f6; }
+        .drag-selected { box-shadow: 0 0 0 3px #3b82f6; opacity: 0.8; }
+        
+        /* Result states */
+        .correct-bg { background-color: #dcfce7 !important; border-color: #22c55e !important; }
+        .wrong-bg { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
+        .correct-text { color: #16a34a !important; }
+        .wrong-text { color: #dc2626 !important; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-20">
+
+    <!-- Nút Quản Trị -->
+    <button onclick="openAdmin()" class="fixed top-4 right-4 z-50 bg-white/90 backdrop-blur text-gray-700 px-4 py-2 rounded-full shadow-lg font-bold border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2">
+        <i class="fas fa-cog"></i> Quản trị
+    </button>
+
+    <!-- Modal Mật khẩu Quản trị -->
+    <div id="authModal" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform transition-all">
+            <h3 class="text-xl font-bold mb-4 text-center text-gray-800">Xác thực Giáo viên</h3>
+            <input type="password" id="adminPassword" placeholder="Nhập mật khẩu..." class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:border-blue-500">
+            <div class="flex gap-2">
+                <button onclick="closeAuth()" class="w-1/2 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold hover:bg-gray-300">Hủy</button>
+                <button onclick="verifyPassword()" class="w-1/2 bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700">Xác nhận</button>
+            </div>
+            <p id="authError" class="text-red-500 text-sm mt-2 text-center hidden">Mật khẩu không đúng!</p>
+        </div>
+    </div>
+
+    <!-- Modal Cài đặt Quản trị -->
+    <div id="adminModal" class="fixed inset-0 bg-black/50 hidden z-[60] overflow-y-auto">
+        <div class="min-h-screen px-4 text-center">
+            <span class="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+            <div class="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-2xl font-bold text-gray-800">Cài đặt Phiếu Học Tập</h3>
+                    <button onclick="closeAdminPanel()" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Thông tin chung -->
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <h4 class="font-bold text-indigo-700 mb-2">1. Thông tin chung</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Môn học</label>
+                                <input type="text" id="cfgSubject" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Khối lớp</label>
+                                <input type="text" id="cfgGrade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700">Tên bài / Chủ đề</label>
+                                <input type="text" id="cfgTitle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700">Tổng điểm (Ví dụ: 10)</label>
+                                <input type="number" id="cfgTotalScore" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 font-bold text-blue-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cấu hình các phần -->
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <h4 class="font-bold text-indigo-700 mb-2">2. Cấu hình điểm & Nội dung</h4>
+                        <p class="text-xs text-red-500 mb-2 italic">* Tổng điểm các phần được bật phải bằng Tổng điểm ở trên.</p>
+                        
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="pb-2">Khu vực</th>
+                                    <th class="pb-2 text-center">Bật/Tắt</th>
+                                    <th class="pb-2 text-center">Điểm tối đa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="configSectionsBody">
+                                <!-- Render via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="closeAdminPanel()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">Hủy</button>
+                    <button onclick="saveAdminConfig()" class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2">
+                        <i class="fas fa-save"></i> Lưu cài đặt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        
+        <!-- HEADER -->
+        <div class="gradient-header rounded-2xl shadow-xl overflow-hidden mb-6 relative">
+            <div class="p-8 text-center text-white relative z-10">
+                <p class="text-indigo-200 font-medium tracking-wider uppercase text-sm mb-1" id="displaySubjectGrade">Môn: Hóa học - Lớp: 10</p>
+                <h1 class="text-3xl sm:text-4xl font-bold mb-4 drop-shadow-md">PHIẾU HỌC TẬP TƯƠNG TÁC</h1>
+                <h2 class="text-2xl sm:text-3xl font-bold text-yellow-300 drop-shadow-md mb-6" id="displayTitle">BÀI: LIÊN KẾT ION</h2>
+                
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 inline-block w-full max-w-2xl border border-white/20 text-left">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-indigo-100 mb-1">Họ và tên học sinh:</label>
+                            <input type="text" id="studentName" placeholder="Nhập họ tên của em..." class="w-full bg-white/90 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-indigo-100 mb-1">Lớp:</label>
+                            <input type="text" id="studentClass" placeholder="VD: 10A1" class="w-full bg-white/90 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative elements -->
+            <div class="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-x-10 -translate-y-10"></div>
+            <div class="absolute bottom-0 right-0 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl translate-x-10 translate-y-10"></div>
+        </div>
+
+        <!-- MỤC TIÊU & HƯỚNG DẪN -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6 border-l-4 border-blue-500">
+            <h3 class="text-lg font-bold text-blue-800 mb-3 flex items-center gap-2"><i class="fas fa-info-circle"></i> HƯỚNG DẪN LÀM BÀI</h3>
+            <ul class="list-disc list-inside text-gray-700 space-y-1 ml-2 text-sm sm:text-base">
+                <li>Đọc kỹ yêu cầu của từng phần trước khi chọn hoặc điền đáp án.</li>
+                <li>Thao tác trực tiếp (chọn đáp án, chọn từ thả xuống, nối cột, kéo thả) trên phiếu học tập này.</li>
+                <li>Chỉ bấm <b>NỘP BÀI & CHẤM ĐIỂM</b> sau khi đã hoàn thành toàn bộ các câu hỏi.</li>
+                <li>Hệ thống chỉ tính điểm cho các câu trả lời <b>Đúng</b>. Điểm được chia đều cho các câu trong từng phần.</li>
+            </ul>
+        </div>
+
+        <!-- RENDER ZONE -->
+        <div id="appContent" class="space-y-6">
+            <!-- Content will be injected here by JS -->
+        </div>
+
+        <!-- BÀN GIAO & KẾT QUẢ -->
+        <div class="mt-8 text-center pb-10">
+            <button id="btnSubmit" onclick="submitTest()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all transform duration-200">
+                <i class="fas fa-paper-plane mr-2"></i> NỘP BÀI & CHẤM ĐIỂM
+            </button>
+            
+            <!-- Khu vực kết quả (Ẩn ban đầu) -->
+            <div id="resultArea" class="hidden mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border-t-8 border-green-500">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">KẾT QUẢ CỦA EM</h2>
+                    <p class="text-gray-500 mb-6">Đã nộp bài thành công. Dưới đây là điểm số của em.</p>
+                    
+                    <div class="flex justify-center items-center mb-6">
+                        <div class="relative w-48 h-48 rounded-full border-8 border-green-100 flex items-center justify-center bg-green-50">
+                            <div class="text-center">
+                                <span id="finalScore" class="text-5xl font-extrabold text-green-600">0</span>
+                                <span class="text-xl font-bold text-gray-500 block border-t-2 border-green-200 mt-2 pt-1" id="maxScoreDisplay">/ 10</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="sectionScoresList" class="max-w-md mx-auto text-left space-y-2 mb-8">
+                        <!-- Render điểm từng phần -->
+                    </div>
+                </div>
+                
+                <!-- GHI NHỚ SIÊU NHANH -->
+                <div class="bg-indigo-50 p-6 text-left border-t border-indigo-100">
+                    <h3 class="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-bolt text-yellow-500"></i> GHI NHỚ SIÊU NHANH
+                    </h3>
+                    <ul class="space-y-3 text-gray-800 font-medium ml-2">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i> 
+                            <span><b>Liên kết ion</b> được hình thành bởi lực hút tĩnh điện giữa cation (ion dương) và anion (ion âm).</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i> 
+                            <span>Liên kết ion thường được tạo thành giữa kim loại điển hình và phi kim điển hình.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i> 
+                            <span>Các nguyên tử có xu hướng nhường, nhận electron để đạt cấu hình electron bền vững của <b>khí hiếm</b>.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i> 
+                            <span><b>Kim loại</b> nhường electron tạo Cation; <b>Phi kim</b> nhận electron tạo Anion.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // 1. DATA STRUCTURE
+        // ==========================================
+        const initialData = {
+            meta: {
+                subject: "Hóa học",
+                grade: "10",
+                title: "Liên kết ion",
+                totalScore: 10
+            },
+            config: {
+                mcq: { active: true, score: 2, name: "I. TRẮC NGHIỆM NHANH" },
+                fib: { active: true, score: 2, name: "II. ĐIỀN KHUYẾT" },
+                tf: { active: true, score: 2, name: "III. ĐÚNG/SAI" },
+                matching: { active: true, score: 2, name: "IV. NỐI CỘT" },
+                dnd: { active: true, score: 2, name: "V. KÉO THẢ HÌNH ẢNH/DỮ LIỆU" }
+            },
+            questions: {
+                mcq: [
+                    { id: "mcq1", q: "Biểu diễn sự tạo thành ion nào sau đây đúng?", opts: ["Na + 1e → Na<sup>+</sup>", "Cl<sub>2</sub> → 2Cl<sup>-</sup> + 2e", "O<sub>2</sub> + 2e → 2O<sup>2-</sup>", "Al → Al<sup>3+</sup> + 3e"], ans: 3 },
+                    { id: "mcq2", q: "Liên kết ion là loại liên kết hoá học được hình thành nhờ lực hút tĩnh điện giữa các phần tử nào sau đây?", opts: ["Cation và anion.", "Các anion.", "Cation và các electron tự do.", "Electron và hạt nhân nguyên tử."], ans: 0 },
+                    { id: "mcq3", q: "Nguyên tử của nguyên tố oxygen có 6 electron ở lớp ngoài cùng, khi tham gia liên kết với các nguyên tố khác, oxygen có xu hướng:", opts: ["nhận thêm 1 electron.", "nhường đi 2 electron.", "nhận thêm 2 electron.", "nhường đi 6 electron."], ans: 2 },
+                    { id: "mcq4", q: "Ion Mg<sup>2+</sup> có cấu hình electron giống cấu hình electron của khí hiếm nào?", opts: ["Helium", "Neon", "Argon", "Krypton"], ans: 1 }
+                ],
+                fib: [
+                    { id: "fib1", textBefore: "1. Các nguyên tử có xu hướng nhường, nhận hoặc dùng chung electron để đạt cấu hình bền vững của", opts: ["Kim loại", "Phi kim", "Halogen", "khí hiếm"], ans: "khí hiếm", textAfter: "." },
+                    { id: "fib2", textBefore: "2. Khi nguyên tử nhường hay nhận electron sẽ trở thành phần tử mang điện tích gọi là", opts: ["Ion dương", "Ion âm", "ion", "Cation"], ans: "ion", textAfter: "." },
+                    { id: "fib3", textBefore: "3. Nguyên tử Ca có xu hướng nhường", opts: ["1", "2", "3", "4"], ans: "2", textAfter: "electron để đạt cấu hình bền vững của khí hiếm gần nhất." },
+                    { id: "fib4", textBefore: "4. Cho các ion sau: Ca<sup>2+</sup>, F<sup>-</sup>, Al<sup>3+</sup> và N<sup>3-</sup>. Số ion có cấu hình electron của khí hiếm neon là", opts: ["1", "2", "3", "4"], ans: "3", textAfter: "." }
+                ],
+                tf: [
+                    { id: "tf1", q: "1. Liên kết ion được tạo thành do sự dùng chung electron.", ans: "S" },
+                    { id: "tf2", q: "2. Liên kết ion thường tạo thành giữa kim loại điển hình và phi kim điển hình.", ans: "Đ" },
+                    { id: "tf3", q: "3. Phân tử Na<sub>2</sub>O tạo bởi lực hút tĩnh điện giữa hai ion Na<sup>+</sup> và một ion O<sup>2-</sup>.", ans: "Đ" },
+                    { id: "tf4", q: "4. Nguyên tử của nguyên tố X có Z = 19, nguyên tử của nguyên tố Y có Z = 9. Liên kết hoá học giữa X và Y thuộc loại liên kết ion.", ans: "Đ" }
+                ],
+                matching: {
+                    colA: [
+                        { id: "mA1", text: "Cation" },
+                        { id: "mA2", text: "Anion" },
+                        { id: "mA3", text: "Ion Ca<sup>2+</sup>" },
+                        { id: "mA4", text: "Ion O<sup>2-</sup>" }
+                    ],
+                    colB: [
+                        { id: "mB1", text: "Ion mang điện tích dương" },
+                        { id: "mB2", text: "Ion mang điện tích âm" },
+                        { id: "mB3", text: "Có 18 electron" },
+                        { id: "mB4", text: "Có 10 electron" }
+                    ],
+                    pairs: { "mA1": "mB1", "mA2": "mB2", "mA3": "mB3", "mA4": "mB4" } // Correct pairs
+                },
+                dnd: {
+                    items: [
+                        { id: "drag1", text: "1s<sup>2</sup>2s<sup>2</sup>2p<sup>6</sup>" },
+                        { id: "drag2", text: "1s<sup>2</sup>2s<sup>2</sup>2p<sup>6</sup>3s<sup>2</sup>3p<sup>6</sup>" },
+                        { id: "drag3", text: "Ca<sup>2+</sup>, Mg<sup>2+</sup>, NH<sub>4</sub><sup>+</sup>" },
+                        { id: "drag4", text: "Cl<sup>-</sup>, O<sup>2-</sup>, CO<sub>3</sub><sup>2-</sup>" }
+                    ],
+                    zones: [
+                        { id: "zone1", label: "Cấu hình electron của Na<sup>+</sup>:", ans: "drag1" },
+                        { id: "zone2", label: "Cấu hình electron của Cl<sup>-</sup>:", ans: "drag2" },
+                        { id: "zone3", label: "Cation bao gồm các ion sau:", ans: "drag3" },
+                        { id: "zone4", label: "Anion bao gồm các ion sau:", ans: "drag4" }
+                    ]
+                }
+            }
+        };
+
+        // State Management
+        let appData = JSON.parse(localStorage.getItem('pht_lienketion_config')) || JSON.parse(JSON.stringify(initialData));
+        let isSubmitted = false;
+        
+        // Matching state
+        let matchingState = {
+            selectedA: null,
+            userPairs: {}, // { mA_id: mB_id }
+            colors: ['match-paired-1', 'match-paired-2', 'match-paired-3', 'match-paired-4'],
+            colorIndex: 0
+        };
+
+        // DragDrop state for click-to-move fallback
+        let dragState = {
+            selectedItem: null
+        };
+
+        // ==========================================
+        // 2. INITIALIZATION & RENDER
+        // ==========================================
+        function initApp() {
+            updateHeader();
+            renderContent();
+            setupInteractions();
+        }
+
+        function updateHeader() {
+            document.getElementById('displaySubjectGrade').innerText = `Môn: ${appData.meta.subject} - Lớp: ${appData.meta.grade}`;
+            document.getElementById('displayTitle').innerText = appData.meta.title.toUpperCase();
+            document.getElementById('maxScoreDisplay').innerText = `/ ${appData.meta.totalScore}`;
+        }
+
+        function renderContent() {
+            const container = document.getElementById('appContent');
+            container.innerHTML = ''; // Clear
+
+            if (appData.config.mcq.active) container.appendChild(createMCQSection());
+            if (appData.config.fib.active) container.appendChild(createFIBSection());
+            if (appData.config.tf.active) container.appendChild(createTFSection());
+            if (appData.config.matching.active) container.appendChild(createMatchingSection());
+            if (appData.config.dnd.active) container.appendChild(createDNDSection());
+        }
+
+        // --- Render MCQ ---
+        function createMCQSection() {
+            const sec = document.createElement('div');
+            sec.className = "bg-white rounded-xl shadow-md p-6 border-t-4 border-indigo-500";
+            sec.id = "sec-mcq";
+            
+            let html = `<div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-xl font-bold text-indigo-700">${appData.config.mcq.name}</h3>
+                            <span class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">${appData.config.mcq.score} điểm</span>
+                        </div>
+                        <div class="space-y-6">`;
+            
+            appData.questions.mcq.forEach((q, idx) => {
+                const charCode = 65; // 'A'
+                html += `<div class="mcq-item" data-id="${q.id}">
+                            <p class="font-bold text-gray-800 mb-3"><span class="mr-2">Câu ${idx + 1}:</span> ${q.q}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
+                q.opts.forEach((opt, oIdx) => {
+                    const letter = String.fromCharCode(charCode + oIdx);
+                    html += `
+                        <div class="relative">
+                            <input type="radio" name="${q.id}" id="${q.id}_${oIdx}" value="${oIdx}" class="peer hidden">
+                            <label for="${q.id}_${oIdx}" class="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 peer-checked:bg-indigo-50 peer-checked:border-indigo-500 transition-all">
+                                <span class="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-gray-200 text-gray-600 rounded-full font-bold mr-3 peer-checked:bg-indigo-500 peer-checked:text-white transition-colors">${letter}</span>
+                                <span class="text-gray-700 font-medium">${opt}</span>
+                            </label>
+                        </div>`;
+                });
+                html += `</div>
+                        <div class="feedback-msg hidden mt-2 text-sm font-bold"></div>
+                    </div>`;
+            });
+            html += `</div>`;
+            sec.innerHTML = html;
+            return sec;
+        }
+
+        // --- Render FIB ---
+        function createFIBSection() {
+            const sec = document.createElement('div');
+            sec.className = "bg-white rounded-xl shadow-md p-6 border-t-4 border-emerald-500";
+            sec.id = "sec-fib";
+            
+            let html = `<div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-xl font-bold text-emerald-700">${appData.config.fib.name}</h3>
+                            <span class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">${appData.config.fib.score} điểm</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4 italic">Bấm vào ô trống để chọn từ/cụm từ thích hợp.</p>
+                        <div class="space-y-4 text-gray-800 text-lg leading-relaxed">`;
+            
+            appData.questions.fib.forEach(q => {
+                let optionsHtml = `<option value="">-- Chọn --</option>`;
+                q.opts.forEach(opt => {
+                    optionsHtml += `<option value="${opt}">${opt}</option>`;
+                });
+                
+                html += `<div class="fib-item bg-gray-50 p-4 rounded-lg border border-gray-100" data-id="${q.id}">
+                            ${q.textBefore} 
+                            <select id="sel_${q.id}" class="mx-2 px-2 py-1 border-b-2 border-emerald-500 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 font-bold text-emerald-700 rounded shadow-sm cursor-pointer appearance-none text-center">
+                                ${optionsHtml}
+                            </select> 
+                            ${q.textAfter}
+                            <span class="feedback-icon hidden ml-2"></span>
+                        </div>`;
+            });
+            html += `</div>`;
+            sec.innerHTML = html;
+            return sec;
+        }
+
+        // --- Render T/F ---
+        function createTFSection() {
+            const sec = document.createElement('div');
+            sec.className = "bg-white rounded-xl shadow-md p-6 border-t-4 border-amber-500";
+            sec.id = "sec-tf";
+            
+            let html = `<div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-xl font-bold text-amber-700">${appData.config.tf.name}</h3>
+                            <span class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">${appData.config.tf.score} điểm</span>
+                        </div>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-700">
+                                    <th class="p-3 rounded-tl-lg">Phát biểu</th>
+                                    <th class="p-3 text-center w-20">Đúng</th>
+                                    <th class="p-3 text-center w-20 rounded-tr-lg">Sai</th>
+                                    <th class="w-10"></th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            
+            appData.questions.tf.forEach((q, idx) => {
+                html += `<tr class="border-b tf-item hover:bg-gray-50" data-id="${q.id}">
+                            <td class="p-3 font-medium text-gray-800">${q.q}</td>
+                            <td class="p-3 text-center">
+                                <input type="radio" name="${q.id}" value="Đ" class="w-5 h-5 text-amber-500 focus:ring-amber-400 cursor-pointer">
+                            </td>
+                            <td class="p-3 text-center">
+                                <input type="radio" name="${q.id}" value="S" class="w-5 h-5 text-amber-500 focus:ring-amber-400 cursor-pointer">
+                            </td>
+                            <td class="text-center feedback-icon"></td>
+                        </tr>`;
+            });
+            html += `</tbody></table>`;
+            sec.innerHTML = html;
+            return sec;
+        }
+
+        // --- Render Matching ---
+        function createMatchingSection() {
+            const sec = document.createElement('div');
+            sec.className = "bg-white rounded-xl shadow-md p-6 border-t-4 border-rose-500";
+            sec.id = "sec-matching";
+            
+            // Shuffle arrays for display
+            let displayA = [...appData.questions.matching.colA].sort(() => Math.random() - 0.5);
+            let displayB = [...appData.questions.matching.colB].sort(() => Math.random() - 0.5);
+
+            let html = `<div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-xl font-bold text-rose-700">${appData.config.matching.name}</h3>
+                            <span class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">${appData.config.matching.score} điểm</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 italic">Bấm chọn 1 mục ở Cột A, sau đó bấm 1 mục tương ứng ở Cột B để nối. Bấm lại để hủy nối.</p>
+                        
+                        <div class="flex flex-col sm:flex-row gap-8 justify-between relative" id="matchingContainer">
+                            <!-- Col A -->
+                            <div class="flex-1 space-y-3" id="colA">
+                                <h4 class="font-bold text-center text-gray-500 mb-3 bg-gray-100 py-1 rounded">CỘT A</h4>`;
+            displayA.forEach(item => {
+                html += `<div class="match-item colA-item p-4 bg-white border-2 border-gray-200 rounded-lg text-center font-medium" data-id="${item.id}" onclick="handleMatchClick('A', '${item.id}')">${item.text}</div>`;
+            });
+            html += `       </div>
+                            <!-- Icon trung gian -->
+                            <div class="hidden sm:flex items-center justify-center text-gray-300 text-3xl">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <!-- Col B -->
+                            <div class="flex-1 space-y-3" id="colB">
+                                <h4 class="font-bold text-center text-gray-500 mb-3 bg-gray-100 py-1 rounded">CỘT B</h4>`;
+            displayB.forEach(item => {
+                html += `<div class="match-item colB-item p-4 bg-white border-2 border-gray-200 rounded-lg text-center font-medium" data-id="${item.id}" onclick="handleMatchClick('B', '${item.id}')">${item.text}</div>`;
+            });
+            html += `       </div>
+                        </div>`;
+            sec.innerHTML = html;
+            return sec;
+        }
+
+        // --- Render Drag & Drop ---
+        function createDNDSection() {
+            const sec = document.createElement('div');
+            sec.className = "bg-white rounded-xl shadow-md p-6 border-t-4 border-cyan-500";
+            sec.id = "sec-dnd";
+            
+            let displayItems = [...appData.questions.dnd.items].sort(() => Math.random() - 0.5);
+
+            let html = `<div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-xl font-bold text-cyan-700">${appData.config.dnd.name}</h3>
+                            <span class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">${appData.config.dnd.score} điểm</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 italic">Kéo thả các mảnh ghép màu xanh vào ô trống tương ứng (hoặc bấm chọn mảnh ghép rồi bấm vào ô trống).</p>
+                        
+                        <!-- Source Items -->
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 flex flex-wrap gap-3 justify-center min-h-[60px]" id="dndSource">`;
+            
+            displayItems.forEach(item => {
+                html += `<div draggable="true" id="${item.id}" class="draggable bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow cursor-pointer select-none transform transition hover:scale-105 hover:shadow-md" onclick="handleDragClick(this)" ondragstart="handleDragStart(event)">${item.text}</div>`;
+            });
+
+            html += `   </div>
+                        
+                        <!-- Target Zones -->
+                        <div class="space-y-4">`;
+            
+            appData.questions.dnd.zones.forEach(zone => {
+                html += `<div class="dnd-zone-container flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200" data-ans="${zone.ans}">
+                            <div class="font-medium text-gray-700 flex-1">${zone.label}</div>
+                            <div id="${zone.id}" class="dropzone flex-1 bg-white rounded-lg flex items-center justify-center p-2 relative shadow-inner" onclick="handleDropClick(this)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                                <span class="text-gray-300 text-sm placeholder-text">Thả vào đây</span>
+                            </div>
+                        </div>`;
+            });
+            html += `</div>`;
+            sec.innerHTML = html;
+            return sec;
+        }
+
+
+        // ==========================================
+        // 3. INTERACTIONS (MATCHING & DND)
+        // ==========================================
+        
+        // Matching Logic
+        function handleMatchClick(col, id) {
+            if (isSubmitted) return;
+            const el = document.querySelector(`[data-id="${id}"]`);
+
+            if (col === 'A') {
+                // If already paired, unpair it
+                if (matchingState.userPairs[id]) {
+                    unpair(id, matchingState.userPairs[id]);
+                    return;
+                }
+                // Deselect current A if any
+                if (matchingState.selectedA) {
+                    document.querySelector(`[data-id="${matchingState.selectedA}"]`).classList.remove('match-selected');
+                }
+                // Select new A
+                if (matchingState.selectedA !== id) {
+                    matchingState.selectedA = id;
+                    el.classList.add('match-selected');
+                } else {
+                    matchingState.selectedA = null; // Toggle off
+                }
+            } else if (col === 'B') {
+                // If B is already paired with something, unpair that connection
+                const pairedA = Object.keys(matchingState.userPairs).find(key => matchingState.userPairs[key] === id);
+                if (pairedA) {
+                    unpair(pairedA, id);
+                }
+
+                // If A is waiting, make a pair
+                if (matchingState.selectedA) {
+                    const colorClass = matchingState.colors[matchingState.colorIndex % matchingState.colors.length];
+                    matchingState.colorIndex++;
+
+                    matchingState.userPairs[matchingState.selectedA] = id;
+                    
+                    const elA = document.querySelector(`[data-id="${matchingState.selectedA}"]`);
+                    elA.classList.remove('match-selected');
+                    
+                    // Remove old classes, add new
+                    elA.className = elA.className.replace(/match-paired-\d/g, '');
+                    el.className = el.className.replace(/match-paired-\d/g, '');
+                    
+                    elA.classList.add(colorClass);
+                    el.classList.add(colorClass);
+                    
+                    // Add link id data attribute for easy unpairing
+                    elA.dataset.pairClass = colorClass;
+                    el.dataset.pairClass = colorClass;
+
+                    matchingState.selectedA = null;
+                }
+            }
+        }
+
+        function unpair(idA, idB) {
+            delete matchingState.userPairs[idA];
+            const elA = document.querySelector(`[data-id="${idA}"]`);
+            const elB = document.querySelector(`[data-id="${idB}"]`);
+            if(elA) {
+                elA.classList.remove(elA.dataset.pairClass);
+                delete elA.dataset.pairClass;
+            }
+            if(elB) {
+                elB.classList.remove(elB.dataset.pairClass);
+                delete elB.dataset.pairClass;
+            }
+        }
+
+        // Drag & Drop Logic (HTML5)
+        function handleDragStart(e) {
+            if (isSubmitted) return;
+            e.dataTransfer.setData("text/plain", e.target.id);
+            // Clear click-to-move state if user starts dragging
+            clearDragSelected();
+        }
+        function handleDragOver(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+        function handleDrop(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const draggedId = e.dataTransfer.getData("text/plain");
+            const draggedEl = document.getElementById(draggedId);
+            appendDraggableToZone(draggedEl, e.currentTarget);
+        }
+
+        // Drag & Drop Logic (Click-to-move for Mobile)
+        function handleDragClick(el) {
+            if (isSubmitted) return;
+            if (dragState.selectedItem === el) {
+                clearDragSelected(); // toggle off
+            } else {
+                clearDragSelected();
+                dragState.selectedItem = el;
+                el.classList.add('drag-selected');
+            }
+        }
+        function handleDropClick(zone) {
+            if (isSubmitted) return;
+            if (dragState.selectedItem) {
+                appendDraggableToZone(dragState.selectedItem, zone);
+                clearDragSelected();
+            } else if (zone.children.length > 1) {
+                // Click on zone to return item to source
+                const item = zone.querySelector('.draggable');
+                if(item) {
+                     document.getElementById('dndSource').appendChild(item);
+                     checkZonePlaceholder(zone);
+                }
+            }
+        }
+
+        function clearDragSelected() {
+            if (dragState.selectedItem) {
+                dragState.selectedItem.classList.remove('drag-selected');
+                dragState.selectedItem = null;
+            }
+        }
+
+        function appendDraggableToZone(item, zone) {
+            if (!item) return;
+            // If zone already has an item, return it to source
+            const existingItem = zone.querySelector('.draggable');
+            if (existingItem) {
+                document.getElementById('dndSource').appendChild(existingItem);
+            }
+            zone.appendChild(item);
+            checkZonePlaceholder(zone);
+            
+            // Fix placeholder in source if empty
+            document.querySelectorAll('.dropzone').forEach(checkZonePlaceholder);
+        }
+
+        function checkZonePlaceholder(zone) {
+            const placeholder = zone.querySelector('.placeholder-text');
+            const hasItem = zone.querySelector('.draggable');
+            if (placeholder) {
+                placeholder.style.display = hasItem ? 'none' : 'block';
+            }
+        }
+
+
+        // ==========================================
+        // 4. SCORING SYSTEM
+        // ==========================================
+        
+        // THAY URL CỦA BẠN VÀO ĐÂY SAU KHI DEPLOY APPS SCRIPT
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvd2KLBVs-imv2PtKqTjhkBmHDdkAMX25NXFBKU2yjsROj9Yp8seOuYWULnHyY6IjJ8A/exec";
+
+        function submitTest() {
+            if (isSubmitted) return;
+            
+            // Validate Student Info
+            const sName = document.getElementById('studentName').value.trim();
+            const sClass = document.getElementById('studentClass').value.trim();
+            if (!sName) {
+                alert("Vui lòng điền Họ và tên trước khi nộp bài!");
+                document.getElementById('studentName').focus();
+                return;
+            }
+
+            isSubmitted = true;
+            document.getElementById('btnSubmit').classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ĐANG NỘP BÀI...';
+
+            let totalAchieved = 0;
+            let sectionHtml = "";
+            
+            // Thống kê chi tiết
+            let stats = {
+                cauDung: 0,
+                cauSai: 0,
+                cauChuaLam: 0,
+                tongCau: 0
+            };
+
+            // Calculate MCQ
+            if (appData.config.mcq.active) {
+                let correctCount = 0;
+                let totalQ = appData.questions.mcq.length;
+                stats.tongCau += totalQ;
+
+                appData.questions.mcq.forEach((q, idx) => {
+                    const inputs = document.getElementsByName(q.id);
+                    let userAns = -1;
+                    inputs.forEach(i => {
+                        i.disabled = true;
+                        if (i.checked) userAns = parseInt(i.value);
+                    });
+                    
+                    const container = document.querySelector(`.mcq-item[data-id="${q.id}"]`);
+                    const fb = container.querySelector('.feedback-msg');
+                    fb.classList.remove('hidden');
+
+                    if (userAns === -1) {
+                        stats.cauChuaLam++;
+                        fb.innerHTML = `<i class="fas fa-exclamation-circle mr-1"></i> Chưa trả lời. Đáp án đúng là: ${String.fromCharCode(65 + q.ans)}`;
+                        fb.className = "feedback-msg mt-2 text-sm font-bold text-gray-500";
+                        container.querySelector(`label[for="${q.id}_${q.ans}"]`).classList.add('correct-bg', 'border-dashed');
+                    } else if (userAns === q.ans) {
+                        correctCount++;
+                        stats.cauDung++;
+                        fb.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Chính xác`;
+                        fb.className = "feedback-msg mt-2 text-sm font-bold correct-text";
+                        // Highlight correct
+                        container.querySelector(`label[for="${q.id}_${q.ans}"]`).classList.add('correct-bg');
+                    } else {
+                        stats.cauSai++;
+                        fb.innerHTML = `<i class="fas fa-times-circle mr-1"></i> Chưa chính xác. Đáp án đúng là: ${String.fromCharCode(65 + q.ans)}`;
+                        fb.className = "feedback-msg mt-2 text-sm font-bold wrong-text";
+                        // Highlight wrong and correct
+                        container.querySelector(`label[for="${q.id}_${userAns}"]`).classList.add('wrong-bg');
+                        container.querySelector(`label[for="${q.id}_${q.ans}"]`).classList.add('correct-bg', 'border-dashed');
+                    }
+                });
+                let score = (correctCount / totalQ) * appData.config.mcq.score;
+                totalAchieved += score;
+                sectionHtml += createScoreRow(appData.config.mcq.name, score, appData.config.mcq.score, `${correctCount}/${totalQ} câu`);
+            }
+
+            // Calculate FIB
+            if (appData.config.fib.active) {
+                let correctCount = 0;
+                let totalQ = appData.questions.fib.length;
+                stats.tongCau += totalQ;
+
+                appData.questions.fib.forEach(q => {
+                    const sel = document.getElementById(`sel_${q.id}`);
+                    sel.disabled = true;
+                    const container = document.querySelector(`.fib-item[data-id="${q.id}"]`);
+                    const icon = container.querySelector('.feedback-icon');
+                    icon.classList.remove('hidden');
+
+                    if (sel.value === "") {
+                        stats.cauChuaLam++;
+                        sel.classList.add('bg-gray-200');
+                        let trueAnsSpan = document.createElement('span');
+                        trueAnsSpan.className = "ml-2 text-sm font-bold text-gray-500 bg-gray-200 px-2 py-1 rounded";
+                        trueAnsSpan.innerText = `Chưa điền (Đúng: ${q.ans})`;
+                        icon.innerHTML = `<i class="fas fa-exclamation-triangle text-gray-400"></i>`;
+                        container.appendChild(trueAnsSpan);
+                    } else if (sel.value === q.ans) {
+                        correctCount++;
+                        stats.cauDung++;
+                        sel.classList.add('correct-bg', 'correct-text');
+                        icon.innerHTML = `<i class="fas fa-check text-green-500"></i>`;
+                    } else {
+                        stats.cauSai++;
+                        sel.classList.add('wrong-bg', 'wrong-text');
+                        let trueAnsSpan = document.createElement('span');
+                        trueAnsSpan.className = "ml-2 text-sm font-bold text-green-600 bg-green-100 px-2 py-1 rounded";
+                        trueAnsSpan.innerText = q.ans;
+                        icon.innerHTML = `<i class="fas fa-times text-red-500"></i>`;
+                        container.appendChild(trueAnsSpan);
+                    }
+                });
+                let score = (correctCount / totalQ) * appData.config.fib.score;
+                totalAchieved += score;
+                sectionHtml += createScoreRow(appData.config.fib.name, score, appData.config.fib.score, `${correctCount}/${totalQ} ô`);
+            }
+
+            // Calculate T/F
+            if (appData.config.tf.active) {
+                let correctCount = 0;
+                let totalQ = appData.questions.tf.length;
+                stats.tongCau += totalQ;
+
+                appData.questions.tf.forEach(q => {
+                    const inputs = document.getElementsByName(q.id);
+                    let userAns = "";
+                    inputs.forEach(i => {
+                        i.disabled = true;
+                        if (i.checked) userAns = i.value;
+                    });
+
+                    const row = document.querySelector(`.tf-item[data-id="${q.id}"]`);
+                    const icon = row.querySelector('.feedback-icon');
+
+                    if (userAns === "") {
+                        stats.cauChuaLam++;
+                        row.classList.add('bg-gray-100');
+                        icon.innerHTML = `<i class="fas fa-minus text-gray-400 text-lg"></i><br><span class="text-xs font-bold text-gray-500">(${q.ans})</span>`;
+                    } else if (userAns === q.ans) {
+                        correctCount++;
+                        stats.cauDung++;
+                        row.classList.add('bg-green-50');
+                        icon.innerHTML = `<i class="fas fa-check text-green-600 text-lg"></i>`;
+                    } else {
+                        stats.cauSai++;
+                        row.classList.add('bg-red-50');
+                        icon.innerHTML = `<i class="fas fa-times text-red-600 text-lg"></i><br><span class="text-xs font-bold text-green-600">(${q.ans})</span>`;
+                    }
+                });
+                let score = (correctCount / totalQ) * appData.config.tf.score;
+                totalAchieved += score;
+                sectionHtml += createScoreRow(appData.config.tf.name, score, appData.config.tf.score, `${correctCount}/${totalQ} ý`);
+            }
+
+            // Calculate Matching
+            if (appData.config.matching.active) {
+                let correctCount = 0;
+                let totalQ = Object.keys(appData.questions.matching.pairs).length;
+                stats.tongCau += totalQ;
+                
+                const correctPairs = appData.questions.matching.pairs;
+
+                // Disable interaction
+                document.querySelectorAll('.match-item').forEach(el => el.classList.remove('cursor-pointer'));
+                
+                appData.questions.matching.colA.forEach(itemA => {
+                    const aId = itemA.id;
+                    const expectedBid = correctPairs[aId];
+                    const userBid = matchingState.userPairs[aId];
+                    
+                    const elA = document.querySelector(`[data-id="${aId}"]`);
+                    const elExpectedB = document.querySelector(`[data-id="${expectedBid}"]`);
+
+                    if (!userBid) {
+                        stats.cauChuaLam++;
+                        elA.className = "match-item p-4 rounded-lg text-center font-bold bg-gray-100 border-2 border-gray-300 text-gray-600";
+                        elA.innerHTML += `<div class="text-xs text-blue-600 mt-2 font-bold"><i class="fas fa-arrow-right"></i> Nối với: ${elExpectedB.innerText.split(' ')[0]}...</div>`;
+                    } else if (userBid === expectedBid) {
+                        correctCount++;
+                        stats.cauDung++;
+                        // Make them distinctly green
+                        elA.className = "match-item p-4 rounded-lg text-center font-bold bg-green-100 border-2 border-green-500 text-green-800";
+                        const elUserB = document.querySelector(`[data-id="${userBid}"]`);
+                        elUserB.className = "match-item p-4 rounded-lg text-center font-bold bg-green-100 border-2 border-green-500 text-green-800";
+                        if (!elUserB.innerHTML.includes('fa-check-circle')) {
+                            elUserB.innerHTML += ` <i class="fas fa-check-circle text-green-600 ml-1"></i>`;
+                        }
+                    } else {
+                        stats.cauSai++;
+                        // Mark A as wrong if answered
+                        elA.className = "match-item p-4 rounded-lg text-center font-bold bg-red-100 border-2 border-red-500 text-red-800";
+                        if (userBid) {
+                            const elUserB = document.querySelector(`[data-id="${userBid}"]`);
+                            if(!elUserB.classList.contains('bg-green-100')) { 
+                                elUserB.className = "match-item p-4 rounded-lg text-center font-bold bg-red-100 border-2 border-red-500 text-red-800";
+                            }
+                        }
+                        // Show correct link structurally
+                        elA.innerHTML += `<div class="text-xs text-blue-600 mt-2 font-bold"><i class="fas fa-arrow-right"></i> ĐÚNG LÀ: ${elExpectedB.innerText.split(' ')[0]}...</div>`;
+                    }
+                });
+
+                let score = (correctCount / totalQ) * appData.config.matching.score;
+                totalAchieved += score;
+                sectionHtml += createScoreRow(appData.config.matching.name, score, appData.config.matching.score, `${correctCount}/${totalQ} cặp`);
+            }
+
+            // Calculate Drag Drop
+            if (appData.config.dnd.active) {
+                let correctCount = 0;
+                let totalQ = appData.questions.dnd.zones.length;
+                stats.tongCau += totalQ;
+                
+                // Disable drag
+                document.querySelectorAll('.draggable').forEach(el => el.draggable = false);
+
+                appData.questions.dnd.zones.forEach(z => {
+                    const zoneEl = document.getElementById(z.id);
+                    const container = document.querySelector(`.dnd-zone-container[data-ans="${z.ans}"]`);
+                    const child = zoneEl.querySelector('.draggable');
+
+                    if (!child) {
+                        stats.cauChuaLam++;
+                        zoneEl.classList.add('bg-gray-200');
+                        const correctItem = appData.questions.dnd.items.find(i => i.id === z.ans);
+                        const ansDiv = document.createElement('div');
+                        ansDiv.className = "mt-2 text-sm font-bold text-gray-500 bg-gray-200 p-2 rounded";
+                        ansDiv.innerHTML = `Chưa kéo (Đúng: ${correctItem.text})`;
+                        container.appendChild(ansDiv);
+                    } else if (child.id === z.ans) {
+                        correctCount++;
+                        stats.cauDung++;
+                        zoneEl.classList.add('correct-bg');
+                        child.classList.replace('bg-blue-500', 'bg-green-600');
+                        child.innerHTML += ` <i class="fas fa-check ml-1"></i>`;
+                    } else {
+                        stats.cauSai++;
+                        zoneEl.classList.add('wrong-bg');
+                        if (child) child.classList.replace('bg-blue-500', 'bg-red-500');
+                        
+                        // Show correct answer below
+                        const correctItem = appData.questions.dnd.items.find(i => i.id === z.ans);
+                        const ansDiv = document.createElement('div');
+                        ansDiv.className = "mt-2 text-sm font-bold text-green-600 bg-green-100 p-2 rounded";
+                        ansDiv.innerHTML = `Đúng: ${correctItem.text}`;
+                        container.appendChild(ansDiv);
+                    }
+                });
+
+                let score = (correctCount / totalQ) * appData.config.dnd.score;
+                totalAchieved += score;
+                sectionHtml += createScoreRow(appData.config.dnd.name, score, appData.config.dnd.score, `${correctCount}/${totalQ} ô`);
+            }
+
+            // Round to 2 decimal places
+            totalAchieved = Math.round(totalAchieved * 100) / 100;
+            
+            // Gửi dữ liệu lên Google Sheets
+            const payload = {
+                hoTen: sName,
+                lop: sClass,
+                diem: totalAchieved.toString().replace('.', ','),
+                cauDung: stats.cauDung,
+                cauSai: stats.cauSai,
+                cauChuaLam: stats.cauChuaLam,
+                tongCau: stats.tongCau
+            };
+
+            // Nếu bạn chưa thay URL, hệ thống vẫn sẽ hiển thị điểm nhưng không lưu được
+            if (GOOGLE_SCRIPT_URL.includes("THAY_BẰNG_MÃ_CỦA_BẠN")) {
+                console.warn("Chưa cấu hình Google Script URL. Bỏ qua bước lưu dữ liệu.");
+                showResults(totalAchieved, sectionHtml);
+            } else {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Dùng no-cors để tránh lỗi chính sách trình duyệt khi ghi sheet
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                }).then(() => {
+                    showResults(totalAchieved, sectionHtml);
+                }).catch(err => {
+                    console.error("Lỗi khi gửi dữ liệu:", err);
+                    alert("Có lỗi khi lưu kết quả lên hệ thống, nhưng điểm của em vẫn sẽ được hiển thị.");
+                    showResults(totalAchieved, sectionHtml);
+                });
+            }
+        }
+        
+        function showResults(totalAchieved, sectionHtml) {
+            document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-check mr-2"></i> ĐÃ NỘP BÀI';
+            
+            const finalScoreEl = document.getElementById('finalScore');
+            finalScoreEl.innerText = totalAchieved.toString().replace('.', ',');
+            
+            document.getElementById('sectionScoresList').innerHTML = sectionHtml;
+            
+            const resultArea = document.getElementById('resultArea');
+            resultArea.classList.remove('hidden');
+            
+            // Scroll to result
+            setTimeout(() => {
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+
+        function createScoreRow(name, score, max, detail) {
+            score = Math.round(score * 100) / 100;
+            return `
+                <div class="flex justify-between items-center border-b border-gray-100 py-2">
+                    <div>
+                        <span class="font-bold text-gray-700">${name}</span>
+                        <span class="text-xs text-gray-400 ml-2">(${detail})</span>
+                    </div>
+                    <span class="font-bold ${score == max ? 'text-green-600' : (score == 0 ? 'text-red-500' : 'text-blue-600')}">${score.toString().replace('.', ',')} / ${max} đ</span>
+                </div>
+            `;
+        }
+
+
+        // ==========================================
+        // 5. ADMIN PANEL
+        // ==========================================
+        function openAdmin() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('authError').classList.add('hidden');
+            document.getElementById('adminPassword').focus();
+        }
+
+        function closeAuth() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function verifyPassword() {
+            const pwd = document.getElementById('adminPassword').value;
+            if (pwd === "1230") {
+                closeAuth();
+                showAdminPanel();
+            } else {
+                document.getElementById('authError').classList.remove('hidden');
+            }
+        }
+
+        // Add Enter key support for auth
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+
+        function showAdminPanel() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            
+            // Load current data into inputs
+            document.getElementById('cfgSubject').value = appData.meta.subject;
+            document.getElementById('cfgGrade').value = appData.meta.grade;
+            document.getElementById('cfgTitle').value = appData.meta.title;
+            document.getElementById('cfgTotalScore').value = appData.meta.totalScore;
+
+            // Render sections config
+            const tbody = document.getElementById('configSectionsBody');
+            tbody.innerHTML = '';
+            const sections = [
+                { key: 'mcq', label: 'Trắc nghiệm' },
+                { key: 'fib', label: 'Điền khuyết' },
+                { key: 'tf', label: 'Đúng/Sai' },
+                { key: 'matching', label: 'Nối cột' },
+                { key: 'dnd', label: 'Kéo thả' }
+            ];
+
+            sections.forEach(s => {
+                const conf = appData.config[s.key];
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 font-medium text-gray-700">${s.label}</td>
+                        <td class="py-3 text-center">
+                            <input type="checkbox" id="cfg_act_${s.key}" class="w-5 h-5 cursor-pointer rounded text-blue-600 focus:ring-blue-500" ${conf.active ? 'checked' : ''}>
+                        </td>
+                        <td class="py-3 text-center">
+                            <input type="number" id="cfg_score_${s.key}" value="${conf.score}" step="0.5" min="0" class="w-20 text-center border border-gray-300 rounded p-1">
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        function saveAdminConfig() {
+            // Validate Total Score
+            const newTotal = parseFloat(document.getElementById('cfgTotalScore').value) || 0;
+            
+            let sumActive = 0;
+            const keys = ['mcq', 'fib', 'tf', 'matching', 'dnd'];
+            keys.forEach(k => {
+                const isActive = document.getElementById(`cfg_act_${k}`).checked;
+                const score = parseFloat(document.getElementById(`cfg_score_${k}`).value) || 0;
+                if (isActive) sumActive += score;
+            });
+
+            if (Math.abs(sumActive - newTotal) > 0.01) {
+                alert(`LỖI: Tổng điểm các phần được bật (${sumActive}) không khớp với Tổng điểm toàn phiếu (${newTotal}). Vui lòng điều chỉnh lại!`);
+                return;
+            }
+
+            // Save Meta
+            appData.meta.subject = document.getElementById('cfgSubject').value;
+            appData.meta.grade = document.getElementById('cfgGrade').value;
+            appData.meta.title = document.getElementById('cfgTitle').value;
+            appData.meta.totalScore = newTotal;
+
+            // Save Config
+            keys.forEach(k => {
+                appData.config[k].active = document.getElementById(`cfg_act_${k}`).checked;
+                appData.config[k].score = parseFloat(document.getElementById(`cfg_score_${k}`).value) || 0;
+            });
+
+            // Save to localStorage
+            localStorage.setItem('pht_lienketion_config', JSON.stringify(appData));
+            
+            closeAdminPanel();
+            
+            // Reload UI
+            if (isSubmitted) {
+                alert("Đã lưu cấu hình. Vì bài đã được nộp nên trang sẽ tự tải lại để áp dụng cài đặt mới (mất kết quả hiện tại).");
+                window.location.reload();
+            } else {
+                initApp();
+                alert("Đã lưu cấu hình thành công!");
+            }
+        }
+
+        // Run
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
